@@ -481,7 +481,12 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/unity,visualstudio,visualstudiocode
+
+Fix for asset meta files not being added due to the Visual Studio rule for ignoring meta files.
+!Assets/**/*.meta
