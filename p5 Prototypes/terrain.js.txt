@@ -1,0 +1,68 @@
+var x = 400, y = 400;
+
+let slider;
+let slider2;
+let slider3;
+let slider4;
+let slider5;
+
+function setup() {
+  noiseSeed(0);
+  noLoop();
+  createCanvas(1000, 400);
+  createP("Base Height");
+  slider5 = createSlider(0.1, 500, 250)
+  slider5.input(redraw)
+  createP("Main Noise Scale");
+  slider = createSlider(0.1, 500, 250)
+  slider.input(redraw)
+  createP("Main Noise Influence");
+  slider4 = createSlider(0, 1000, 100)
+  slider4.input(redraw)
+  createP("Secondary Noise Scale");
+  slider2 = createSlider(0.1, 100)
+  slider2.input(redraw)
+  createP("Secondary Noise Influence");
+  slider3 = createSlider(0, 100, 10)
+  slider3.input(redraw)
+}
+
+function draw() {
+  clear()
+  background(0)
+  loadPixels();
+  let baseHeight = slider5.value()
+  let noiseScale = slider.value()
+  let noiseInfluence = slider4.value()
+  let secondaryNoiseScale = slider2.value();
+  let secondaryNoiseInfluence = slider3.value();
+  
+  let max = (noiseInfluence + secondaryNoiseInfluence) / 2;
+  
+  for (let x = 0; x < 1000; ++x)
+  {
+    let finalNoise = floor(noise(5000 + (x - 200) / noiseScale) * noiseInfluence + noise(1000 + (x - 200) / (noiseScale / secondaryNoiseScale)) * secondaryNoiseInfluence);
+    
+    let height = finalNoise + baseHeight;
+    
+    if (finalNoise / max < 0.7)
+    {
+        height = finalNoise / 0.7 * 0.3;
+    }
+    else
+    {
+        height = 0.3 + (finalNoise - 0.7) / 0.3 * 0.7;
+    }
+    height += baseHeight;
+    for (let i = 0; i < height; ++i)
+      set(x, i, 255);
+  }
+  updatePixels();
+  fill(0);
+  text(
+    `baseHeight: ${baseHeight}\n` +
+    `noiseScale: ${noiseScale}\n` +
+    `noiseInfluence: ${noiseInfluence}\n` +
+    `secondaryNoiseScale: ${secondaryNoiseScale}\n` +
+    `secondaryNoiseInfluence: ${secondaryNoiseInfluence}\n`, 30, 30);
+}

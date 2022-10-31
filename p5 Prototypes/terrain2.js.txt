@@ -1,0 +1,84 @@
+var x = 400, y = 400;
+
+let slider;
+let slider2;
+let slider3;
+let slider4;
+let slider5;
+let slider6;
+let slider7;
+let slider9;
+
+function setup() {
+  noiseSeed(1);
+  noLoop();
+  createCanvas(1000, 400);
+  createP("Pan");
+  slider9 = createSlider(0, 200, 0.01)
+  slider9.input(redraw)
+  createP("Base Height");
+  slider5 = createSlider(0.1, 500, 250)
+  slider5.input(redraw)
+  createP("Main Noise Scale");
+  slider = createSlider(0.1, 500, 250)
+  slider.input(redraw)
+  createP("Main Noise Influence");
+  slider4 = createSlider(0, 1000, 100)
+  slider4.input(redraw)
+  createP("Secondary Noise Scale");
+  slider2 = createSlider(0.1, 100)
+  slider2.input(redraw)
+  createP("Secondary Noise Influence");
+  slider3 = createSlider(0, 50, 10)
+  createP("Threshold");
+  slider6 = createSlider(0, 1.0, 0.8, 0.1)
+  slider6.input(redraw)
+  createP("Scale");
+  slider7 = createSlider(0, 1.0, 0.3, 0.1)
+  slider7.input(redraw)
+}
+
+function draw() {
+  clear()
+  background(0)
+  loadPixels();
+  let baseHeight = slider5.value()
+  let noiseScale = slider.value()
+  let noiseInfluence = slider4.value()
+  let secondaryNoiseScale = slider2.value();
+  let secondaryNoiseInfluence = slider3.value();
+  
+  let max = (noiseInfluence + secondaryNoiseInfluence) * 2;
+  let _pan = slider9.value();
+  let _threshold = slider6.value();
+  let __scale = slider7.value();
+  
+  for (let x = 0; x < 1000; ++x)
+  {
+    let finalNoise = noise(_pan + 5000 + (x - 200) / noiseScale) * noiseInfluence + noise(_pan + 1000 + (x - 200) / (noiseScale / secondaryNoiseScale)) * secondaryNoiseInfluence + max / 2;
+    
+    let height;
+    
+
+    if (finalNoise / max < _threshold)
+    {
+        height = max * lerp(0, __scale, finalNoise / max / _threshold);
+    }
+    else
+    {
+        height = max * lerp(__scale, 0.6, (finalNoise / max - _threshold) / (1 - _threshold));
+    }
+    height = -height;
+    height += max / 2 + max / 4 - baseHeight;
+    for (let i = 0; i < height; ++i)
+      set(x, i, 255);
+  }
+  updatePixels();
+  fill(0);
+  text(
+    `baseHeight: ${baseHeight}\n` +
+    `noiseScale: ${noiseScale}\n` +
+    `noiseInfluence: ${noiseInfluence}\n` +
+    `secondaryNoiseScale: ${secondaryNoiseScale}\n` +
+    `secondaryNoiseInfluence: ${secondaryNoiseInfluence}\n`, 30, 30);
+}
