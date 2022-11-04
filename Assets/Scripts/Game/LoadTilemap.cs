@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Unity.Mathematics;
+
+using Klak.Motion;
 
 [System.Serializable]
 public enum TileGroup
@@ -41,6 +44,8 @@ public class LoadTilemap : MonoBehaviour
         WorldGen(100);
     }
 
+
+
     void SetupTiles()
     {
         tiles = new Tile[tileInfo.Length];
@@ -54,32 +59,76 @@ public class LoadTilemap : MonoBehaviour
 
     readonly float factor1 = 30;
     readonly float factor2 = 11;
+
+    void doCircle(bool[,] caveMap, Vector2Int pos, int radius)
+    {
+        float minAngle = Mathf.Acos(1f - 1f / radius);
+        for (float angle = 0; angle < 360; angle += minAngle)
+        {
+            int circumX = pos.x + Mathf.RoundToInt(Mathf.Cos(angle) * radius);
+            int circumY = pos.y + Mathf.RoundToInt(Mathf.Sin(angle) * radius);
+
+            for (int x = pos.x; Mathf.Sign(x - circumX) == Mathf.Sign(pos.x - circumX); x -= Mathf.RoundToInt(Mathf.Sign(pos.x - circumX)))
+            {
+                if (0 <= x && x <= caveMap.GetUpperBound(0) && 0 <= circumY && circumY <= caveMap.GetUpperBound(1))
+                    caveMap[x, circumY] = false;
+            }
+        }
+    }
+
+
+
+    void doCave(bool[,] caveMap, Vector2Int pos)
+    {
+        int length = UnityEngine.Random.Range(40, 100);
+        int radius = UnityEngine.Random.Range(4, 15);
+        for (int i = 0; i < length; ++i)
+        {
+            doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt(Mathf.PerlinNoise(i / 20f, 0) * 30f), i), radius);
+        }
+    }
+
     void WorldGen(long seed)
     {
         Vector2Int vecSeed = new((int)(seed), (int)(seed >> 32));
-        Vector2Int worldSize = new(50, 50);
+        Vector2Int worldSize = new(100, 100);
         // 2000x1000 total, 1000 in both directions and 500 in both directions
         worldSize *= 2;
 
-        bool[][,] caveMap = new bool[2][,] {
-            new bool [worldSize.x, worldSize.y],
-            new bool [worldSize.x, worldSize.y],
-        };
+        bool[,] caveMap = new bool[worldSize.x, worldSize.y];
 
         for (int i = 0; i < worldSize.x; ++i)
         {
             for (int j = 0; j < worldSize.y; ++j)
             {
-                bool b = (Mathf.PerlinNoise(i / factor1, j / factor1)) > 0.5f;
-                caveMap[0][i, j] = b;
-                if (b)
-                {
-                    //maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(0,0), tiles[0]);
-                    maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i - worldSize.x / 2, j - worldSize.y / 2), tiles[0]);
-                }
+                // bool b = (Mathf.PerlinNoise(i / 30.0f, j / 30.0f) + Mathf.PerlinNoise(i / 20.0f, j / 20.0f) * 0.6f) / 1.6f > 0.35f;
+                //bool b = Random.Range(0f, 1f) > 0.45f;
+                caveMap[i, j] = true;
             }
         }
 
+        //for (int i = 0; i < worldSize.x; ++i)
+        //{
+        //    for (int j = 0; j < worldSize.y; ++j)
+        //    {
+        //        bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.0002f;
+        //        if (!shouldntCave)
+        //            doCave(caveMap, new Vector2Int(i, j)); // some sort of brownian motion type thing that draws circles and stuff
+        //    }
+        //}
+
+        doCave(caveMap, new Vector2Int(100, 0));
+
+        //caveMap = SmoothMooreCellularAutomata(caveMap, true, 4);
+
+        for (int i = 0; i < worldSize.x; ++i)
+        {
+            for (int j = 0; j < worldSize.y; ++j)
+            {
+                if (caveMap[i, j])
+                    maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[0]);
+            }
+        }
 
         // for (int i = -worldSize.x; i <= worldSize.x; ++i)
         // {
@@ -112,15 +161,9 @@ public class LoadTilemap : MonoBehaviour
 
 
 
-    // Taken from https://blog.unity.com/technology/procedural-patterns-to-use-with-tilemaps-part-ii
+    // Adapted from https://blog.unity.com/technology/procedural-patterns-to-use-with-tilemaps-part-ii
 
-
-
-
-
-
-
-    static int GetMooreSurroundingTiles(int[,] map, int x, int y, bool edgesAreWalls)
+    static int GetMooreSurroundingTiles(bool[,] map, int x, int y, bool edgesAreWalls)
     {
         /* Moore Neighbourhood looks like this ('T' is our tile, 'N' is our neighbours)
         *
@@ -141,7 +184,7 @@ public class LoadTilemap : MonoBehaviour
                     //We don't want to count the tile we are checking the surroundings of
                     if(neighbourX != x || neighbourY != y)
                     {
-                        tileCount += map[neighbourX, neighbourY];
+                        tileCount += map[neighbourX, neighbourY] ? 1 : 0;
                     }
                 }
             }
@@ -149,35 +192,41 @@ public class LoadTilemap : MonoBehaviour
         return tileCount;
     }
 
-    public static int[,] SmoothMooreCellularAutomata(int[,] map, bool edgesAreWalls, int smoothCount)
+    public static bool[,] SmoothMooreCellularAutomata(bool[,] mapA, bool edgesAreWalls, int smoothCount)
     {
+        bool[,] mapB = new bool[mapA.GetLength(0), mapA.GetLength(1)];
         for (int i = 0; i < smoothCount; i++)
         {
-            for (int x = 0; x < map.GetUpperBound(0); x++)
+            for (int x = 0; x <= mapA.GetUpperBound(0); x++)
             {
-                for (int y = 0; y < map.GetUpperBound(1); y++)
+                for (int y = 0; y <= mapA.GetUpperBound(1); y++)
                 {
-                    int surroundingTiles = GetMooreSurroundingTiles(map, x, y, edgesAreWalls);
+                    int surroundingTiles = GetMooreSurroundingTiles(mapA, x, y, edgesAreWalls);
 
-                    if (edgesAreWalls && (x == 0 || x == (map.GetUpperBound(0) - 1) || y == 0 || y == (map.GetUpperBound(1) - 1)))
+                    if (edgesAreWalls && (x == 0 || x == mapA.GetUpperBound(0) || y == 0 || y == mapA.GetUpperBound(1)))
                     {
                         //Set the edge to be a wall if we have edgesAreWalls to be true
-                        map[x, y] = 1;
+                        mapB[x, y] = true;
                     }
                     //The default moore rule requires more than 4 neighbours
                     else if (surroundingTiles > 4)
                     {
-                        map[x, y] = 1;
+                        mapB[x, y] = true;
                     }
                     else if (surroundingTiles < 4)
                     {
-                        map[x, y] = 0;
+                        mapB[x, y] = false;
+                    }
+                    else
+                    {
+                        mapB[x, y] = mapA[x, y];
                     }
                 }
             }
+            (mapA, mapB) = (mapB, mapA);
         }
         //Return the modified map
-        return map;
+        return mapA;
     }
 
 

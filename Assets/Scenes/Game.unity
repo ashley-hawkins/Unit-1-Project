@@ -519,13 +519,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileInfo:
-  - sprite: {fileID: 21300000, guid: 10ec279fead294d4cb62dacfffbed994, type: 3}
+  - sprite: {fileID: 21300000, guid: c6c9a960226f7e540bb3c8633b215dc9, type: 3}
     name: Grass
   - sprite: {fileID: 21300000, guid: 8de245a74430dad4e90542ece64e21d0, type: 3}
     name: Stone
   loadFile: 
-  factor1: 0
-  factor2: 0
 --- !u!1 &1648015348
 GameObject:
   m_ObjectHideFlags: 0
