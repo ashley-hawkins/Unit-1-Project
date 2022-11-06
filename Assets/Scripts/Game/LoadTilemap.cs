@@ -4,8 +4,6 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using Unity.Mathematics;
 
-using Klak.Motion;
-
 [System.Serializable]
 public enum TileGroup
 {
@@ -84,7 +82,7 @@ public class LoadTilemap : MonoBehaviour
         int radius = UnityEngine.Random.Range(4, 15);
         for (int i = 0; i < length; ++i)
         {
-            doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt(Mathf.PerlinNoise(i / 20f, 0) * 30f), i), radius);
+            doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt((Mathf.PerlinNoise(i / 5f / radius, 0) - 0.5f) * 15f * radius), i), radius);
         }
     }
 
@@ -102,22 +100,22 @@ public class LoadTilemap : MonoBehaviour
             for (int j = 0; j < worldSize.y; ++j)
             {
                 // bool b = (Mathf.PerlinNoise(i / 30.0f, j / 30.0f) + Mathf.PerlinNoise(i / 20.0f, j / 20.0f) * 0.6f) / 1.6f > 0.35f;
-                //bool b = Random.Range(0f, 1f) > 0.45f;
+                // bool b = UnityEngine.Random.Range(0f, 1f) > 0.45f;
                 caveMap[i, j] = true;
             }
         }
 
-        //for (int i = 0; i < worldSize.x; ++i)
-        //{
-        //    for (int j = 0; j < worldSize.y; ++j)
-        //    {
-        //        bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.0002f;
-        //        if (!shouldntCave)
-        //            doCave(caveMap, new Vector2Int(i, j)); // some sort of brownian motion type thing that draws circles and stuff
-        //    }
-        //}
+        for (int i = 0; i < worldSize.x; ++i)
+        {
+           for (int j = 0; j < worldSize.y; ++j)
+           {
+               bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.0002f;
+               if (!shouldntCave)
+                   doCave(caveMap, new Vector2Int(i, j)); // some sort of brownian motion type thing that draws circles and stuff
+           }
+        }
 
-        doCave(caveMap, new Vector2Int(100, 0));
+        //doCave(caveMap, new Vector2Int(100, 0));
 
         //caveMap = SmoothMooreCellularAutomata(caveMap, true, 4);
 
