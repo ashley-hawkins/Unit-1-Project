@@ -7,6 +7,8 @@ public class Player : MonoBehaviour
     // Start is called before the first frame update
     public Animator animator;
     Rigidbody2D rb;
+    Combat combat;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();

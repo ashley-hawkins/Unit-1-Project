@@ -74,26 +74,47 @@ public class LoadTilemap : MonoBehaviour
         }
     }
 
-
-
-    void doCave(bool[,] caveMap, Vector2Int pos)
+    void doCave(bool[,] caveMap, Vector2Int pos, int length, int radius)
     {
-        int length = UnityEngine.Random.Range(40, 100);
-        int radius = UnityEngine.Random.Range(4, 15);
         for (int i = 0; i < length; ++i)
         {
-            doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt((Mathf.PerlinNoise(i / 5f / radius, 0) - 0.5f) * 15f * radius), i), radius);
+            doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt((Mathf.PerlinNoise((pos.y + i) / 5f / radius, pos.x / 5f / radius) - 0.5f) * 30f * radius), i), radius);
         }
+    }
+
+    void doCaveRandom(bool[,] caveMap, Vector2Int pos)
+    {
+        int length = UnityEngine.Random.Range(200, 300);
+        int radius = UnityEngine.Random.Range(8, 15);
     }
 
     void WorldGen(long seed)
     {
+        var rngOldState = UnityEngine.Random.state;
+        UnityEngine.Random.InitState((int)seed);
         Vector2Int vecSeed = new((int)(seed), (int)(seed >> 32));
-        Vector2Int worldSize = new(100, 100);
+        Vector2Int worldSize = new(500, 300);
         // 2000x1000 total, 1000 in both directions and 500 in both directions
         worldSize *= 2;
 
         bool[,] caveMap = new bool[worldSize.x, worldSize.y];
+        int[] heightMap = new int[worldSize.x];
+
+        for (int i = 0; i <= worldSize.x; ++i)
+        {
+            for (int j = 0; j < 10; ++j)
+            {
+                float x = i + j / 10f;
+                Debug.DrawRay(new Vector3(x, (Mathf.PerlinNoise(vecSeed.x + x / factor1, vecSeed.y) - 0.5f) * factor2 - factor2 / 2f), Vector3.up * 0.1f, Color.red);
+            }
+            float noiseHeight = (Mathf.PerlinNoise(vecSeed.x + i / factor1, vecSeed.y) - 0.5f) * factor2;
+            int height = Mathf.RoundToInt(noiseHeight);
+            maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, height), tiles[0]);
+            for (int j = height - 1; j >= -worldSize.y; --j)
+            {
+                maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[1]);
+            }
+        }
 
         for (int i = 0; i < worldSize.x; ++i)
         {
@@ -109,13 +130,13 @@ public class LoadTilemap : MonoBehaviour
         {
            for (int j = 0; j < worldSize.y; ++j)
            {
-               bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.0002f;
+               bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.00001f;
                if (!shouldntCave)
-                   doCave(caveMap, new Vector2Int(i, j)); // some sort of brownian motion type thing that draws circles and stuff
+                   doCaveRandom(caveMap, new Vector2Int(i, j)); // some sort of brownian motion type thing that draws circles and stuff
            }
         }
 
-        //doCave(caveMap, new Vector2Int(100, 0));
+        doCave(caveMap, new Vector2Int(500, 600), 350, 15);
 
         //caveMap = SmoothMooreCellularAutomata(caveMap, true, 4);
 
@@ -128,23 +149,7 @@ public class LoadTilemap : MonoBehaviour
             }
         }
 
-        // for (int i = -worldSize.x; i <= worldSize.x; ++i)
-        // {
-        //     print("i = " + i);
-        //     for (int j = 0; j < 10; ++j)
-        //     {
-        //         float x = i + j / 10f;
-        //         Debug.DrawRay(new Vector3(x, Mathf.PerlinNoise(vecSeed.x + x / factor1, vecSeed.y) * factor2  - factor2 / 2f), Vector3.up * 0.1f, Color.red);
-        //     }
-        //     float height2 = Mathf.PerlinNoise(vecSeed.x + i / factor1, vecSeed.y) * factor2 - factor2 / 2f;
-        //     print("Height: " + height2);
-        //     int height = Mathf.RoundToInt(height2);
-        //     maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, height), tiles[0]);
-        //     for (int j = height - 1; j >= -worldSize.y; --j)
-        //     {
-        //         maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[1]);
-        //     }
-        // }
+        UnityEngine.Random.state = rngOldState;
     }
     void Update()
     {
