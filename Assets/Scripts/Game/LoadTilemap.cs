@@ -20,6 +20,8 @@ public class TileInfo
     public string name;
 }
 
+
+
 public class LoadTilemap : MonoBehaviour
 {
     // Start is called before the first frame update
@@ -42,7 +44,21 @@ public class LoadTilemap : MonoBehaviour
         WorldGen(100);
     }
 
-
+    float GetSimplexNoise(float x, float y, int octaves = 1)
+    {
+        float2 pos = new(x, y);
+        float res = 0f;
+        float max = 0f;
+        float mult = 1f;
+        for (int i = 0; i < octaves; i++)
+        {
+            res += noise.snoise(pos) * mult;
+            max += mult;
+            mult *= 0.5f;
+            pos *= 0.5f;
+        }
+        return 0.5f * res / max;
+    }
 
     void SetupTiles()
     {
@@ -76,9 +92,25 @@ public class LoadTilemap : MonoBehaviour
 
     void doCave(bool[,] caveMap, Vector2Int pos, int length, int radius)
     {
+        Vector2 lastOffset = Vector2.right * GetSimplexNoise(pos.y / 5f / radius, pos.x / 5f / radius, 4) * 30f * radius;
         for (int i = 0; i < length; ++i)
         {
-            doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt((Mathf.PerlinNoise((pos.y + i) / 5f / radius, pos.x / 5f / radius) - 0.5f) * 30f * radius), i), radius);
+            float theXCoordinate = ((GetSimplexNoise((pos.y - i) / 5f / radius, pos.x / 5f / radius, 4)) * 30f * radius);
+
+            Vector2 nextOffset = new(theXCoordinate, - i);
+            var posDiff = (nextOffset - lastOffset).magnitude;
+            if (posDiff != 0)
+            {
+                for (float l = 0; l < 1; l = Mathf.Min(1, l + 1f / posDiff))
+                {
+                    doCircle(caveMap, pos + Vector2Int.RoundToInt(Vector2.Lerp(lastOffset, nextOffset, l)), radius);
+                }
+            }
+            else
+            {
+                doCircle(caveMap, pos + new Vector2Int(Mathf.RoundToInt(theXCoordinate), -i), radius);
+            }
+            lastOffset = nextOffset;
         }
     }
 
@@ -86,6 +118,7 @@ public class LoadTilemap : MonoBehaviour
     {
         int length = UnityEngine.Random.Range(200, 300);
         int radius = UnityEngine.Random.Range(8, 15);
+        doCave(caveMap, pos, length, radius);
     }
 
     void WorldGen(long seed)
@@ -93,27 +126,23 @@ public class LoadTilemap : MonoBehaviour
         var rngOldState = UnityEngine.Random.state;
         UnityEngine.Random.InitState((int)seed);
         Vector2Int vecSeed = new((int)(seed), (int)(seed >> 32));
-        Vector2Int worldSize = new(500, 300);
+        Vector2Int worldSize = new(600, 300);
         // 2000x1000 total, 1000 in both directions and 500 in both directions
         worldSize *= 2;
 
         bool[,] caveMap = new bool[worldSize.x, worldSize.y];
         int[] heightMap = new int[worldSize.x];
 
-        for (int i = 0; i <= worldSize.x; ++i)
+        for (int i = 0; i < worldSize.x; ++i)
         {
             for (int j = 0; j < 10; ++j)
             {
                 float x = i + j / 10f;
-                Debug.DrawRay(new Vector3(x, (Mathf.PerlinNoise(vecSeed.x + x / factor1, vecSeed.y) - 0.5f) * factor2 - factor2 / 2f), Vector3.up * 0.1f, Color.red);
+                Debug.DrawRay(new Vector3(x, (GetSimplexNoise(vecSeed.x + x / factor1, vecSeed.y, 3)) * factor2), Vector3.up * 0.1f, Color.red);
             }
             float noiseHeight = (Mathf.PerlinNoise(vecSeed.x + i / factor1, vecSeed.y) - 0.5f) * factor2;
-            int height = Mathf.RoundToInt(noiseHeight);
-            maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, height), tiles[0]);
-            for (int j = height - 1; j >= -worldSize.y; --j)
-            {
-                maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[1]);
-            }
+            int height = Mathf.RoundToInt(noiseHeight) + worldSize.y - Mathf.CeilToInt(factor2) - 100;
+            heightMap[i] = height;
         }
 
         for (int i = 0; i < worldSize.x; ++i)
@@ -132,20 +161,42 @@ public class LoadTilemap : MonoBehaviour
            {
                bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.00001f;
                if (!shouldntCave)
-                   doCaveRandom(caveMap, new Vector2Int(i, j)); // some sort of brownian motion type thing that draws circles and stuff
+                   doCaveRandom(caveMap, new Vector2Int(i, j));
            }
         }
 
-        doCave(caveMap, new Vector2Int(500, 600), 350, 15);
+        doCircle(caveMap, worldSize / 2, 50);
+
+        doCave(caveMap, new Vector2Int(worldSize.x / 2, heightMap[worldSize.x / 2]), heightMap[worldSize.x / 2], 5);
 
         //caveMap = SmoothMooreCellularAutomata(caveMap, true, 4);
 
         for (int i = 0; i < worldSize.x; ++i)
         {
-            for (int j = 0; j < worldSize.y; ++j)
+            for (int y = heightMap[i]; y < worldSize.y; ++y)
+            {
+                caveMap[i, y] = false;
+            }
+        }
+
+        for (int i = 0; i < worldSize.x; ++i)
+        {
+            bool first = true;
+            for (int j = worldSize.y - 1; j >= 0; --j)
             {
                 if (caveMap[i, j])
-                    maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[0]);
+                {
+                    if (first)
+                    {
+                        print("first");
+                        maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[0]);
+                        first = false;
+                    }
+                    else if (j > 400)
+                        maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[1]);
+                    else
+                        maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[2]);
+                }
             }
         }
 
