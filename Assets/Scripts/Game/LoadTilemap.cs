@@ -55,7 +55,7 @@ public class LoadTilemap : MonoBehaviour
             res += noise.snoise(pos) * mult;
             max += mult;
             mult *= 0.5f;
-            pos *= 0.5f;
+            pos /= 0.5f;
         }
         return 0.5f * res / max;
     }
@@ -72,7 +72,7 @@ public class LoadTilemap : MonoBehaviour
     }
 
     readonly float factor1 = 30;
-    readonly float factor2 = 11;
+    readonly float factor2 = 15;
 
     void doCircle(bool[,] caveMap, Vector2Int pos, int radius)
     {
@@ -92,10 +92,10 @@ public class LoadTilemap : MonoBehaviour
 
     void doCave(bool[,] caveMap, Vector2Int pos, int length, int radius)
     {
-        Vector2 lastOffset = Vector2.right * GetSimplexNoise(pos.y / 5f / radius, pos.x / 5f / radius, 4) * 30f * radius;
+        Vector2 lastOffset = Vector2.right * GetSimplexNoise(pos.y / 5f / radius, pos.x / 5f / radius) * 30f * radius;
         for (int i = 0; i < length; ++i)
         {
-            float theXCoordinate = ((GetSimplexNoise((pos.y - i) / 5f / radius, pos.x / 5f / radius, 4)) * 30f * radius);
+            float theXCoordinate = ((GetSimplexNoise((pos.y - i) / 5f / radius, pos.x / 5f / radius)) * 30f * radius);
 
             Vector2 nextOffset = new(theXCoordinate, - i);
             var posDiff = (nextOffset - lastOffset).magnitude;
@@ -126,11 +126,12 @@ public class LoadTilemap : MonoBehaviour
         var rngOldState = UnityEngine.Random.state;
         UnityEngine.Random.InitState((int)seed);
         Vector2Int vecSeed = new((int)(seed), (int)(seed >> 32));
-        Vector2Int worldSize = new(600, 300);
+        Vector2Int worldSize = new(100, 300);
         // 2000x1000 total, 1000 in both directions and 500 in both directions
         worldSize *= 2;
 
-        bool[,] caveMap = new bool[worldSize.x, worldSize.y];
+        bool[,] squiggleCaveMap = new bool[worldSize.x, worldSize.y];
+        bool[,] openCaveMap = new bool[worldSize.x, worldSize.y];
         int[] heightMap = new int[worldSize.x];
 
         for (int i = 0; i < worldSize.x; ++i)
@@ -138,9 +139,9 @@ public class LoadTilemap : MonoBehaviour
             for (int j = 0; j < 10; ++j)
             {
                 float x = i + j / 10f;
-                Debug.DrawRay(new Vector3(x, (GetSimplexNoise(vecSeed.x + x / factor1, vecSeed.y, 3)) * factor2), Vector3.up * 0.1f, Color.red);
+                Debug.DrawRay(new Vector3(x, GetSimplexNoise(vecSeed.x + (x / factor1), vecSeed.y, 3) * factor2), Vector3.up * 0.1f, Color.red);
             }
-            float noiseHeight = (Mathf.PerlinNoise(vecSeed.x + i / factor1, vecSeed.y) - 0.5f) * factor2;
+            float noiseHeight = GetSimplexNoise(vecSeed.x + (i / factor1), vecSeed.y, 2) * factor2;
             int height = Mathf.RoundToInt(noiseHeight) + worldSize.y - Mathf.CeilToInt(factor2) - 100;
             heightMap[i] = height;
         }
@@ -150,10 +151,13 @@ public class LoadTilemap : MonoBehaviour
             for (int j = 0; j < worldSize.y; ++j)
             {
                 // bool b = (Mathf.PerlinNoise(i / 30.0f, j / 30.0f) + Mathf.PerlinNoise(i / 20.0f, j / 20.0f) * 0.6f) / 1.6f > 0.35f;
-                // bool b = UnityEngine.Random.Range(0f, 1f) > 0.45f;
-                caveMap[i, j] = true;
+                bool b = j > 400 || GetSimplexNoise(i / 100f, j / 100f, 4) > -0.15f;
+                openCaveMap[i, j] = b;
+                squiggleCaveMap[i, j] = true;
             }
         }
+
+        openCaveMap = SmoothMooreCellularAutomata(openCaveMap, true, 1);
 
         for (int i = 0; i < worldSize.x; ++i)
         {
@@ -161,21 +165,19 @@ public class LoadTilemap : MonoBehaviour
            {
                bool shouldntCave = UnityEngine.Random.Range(0f, 1f) > 0.00001f;
                if (!shouldntCave)
-                   doCaveRandom(caveMap, new Vector2Int(i, j));
+                   doCaveRandom(squiggleCaveMap, new Vector2Int(i, j));
            }
         }
 
-        doCircle(caveMap, worldSize / 2, 50);
+        doCircle(squiggleCaveMap, worldSize / 2, 50);
 
-        doCave(caveMap, new Vector2Int(worldSize.x / 2, heightMap[worldSize.x / 2]), heightMap[worldSize.x / 2], 5);
-
-        //caveMap = SmoothMooreCellularAutomata(caveMap, true, 4);
+        doCave(squiggleCaveMap, new Vector2Int(worldSize.x / 2, heightMap[worldSize.x / 2]), heightMap[worldSize.x / 2], 5);
 
         for (int i = 0; i < worldSize.x; ++i)
         {
             for (int y = heightMap[i]; y < worldSize.y; ++y)
             {
-                caveMap[i, y] = false;
+                squiggleCaveMap[i, y] = false;
             }
         }
 
@@ -184,7 +186,7 @@ public class LoadTilemap : MonoBehaviour
             bool first = true;
             for (int j = worldSize.y - 1; j >= 0; --j)
             {
-                if (caveMap[i, j])
+                if (squiggleCaveMap[i, j] && openCaveMap[i,j])
                 {
                     if (first)
                     {
@@ -219,14 +221,6 @@ public class LoadTilemap : MonoBehaviour
 
     static int GetMooreSurroundingTiles(bool[,] map, int x, int y, bool edgesAreWalls)
     {
-        /* Moore Neighbourhood looks like this ('T' is our tile, 'N' is our neighbours)
-        *
-        * N N N
-        * N T N
-        * N N N
-        *
-        */
-
         int tileCount = 0;
 
         for(int neighbourX = x - 1; neighbourX <= x + 1; neighbourX++)
