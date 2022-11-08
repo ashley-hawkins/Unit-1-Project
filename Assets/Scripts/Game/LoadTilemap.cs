@@ -57,7 +57,7 @@ public class LoadTilemap : MonoBehaviour
             mult *= 0.5f;
             pos /= 0.5f;
         }
-        return 0.5f * res / max;
+        return res / max;
     }
 
     void SetupTiles()
@@ -72,7 +72,7 @@ public class LoadTilemap : MonoBehaviour
     }
 
     readonly float factor1 = 30;
-    readonly float factor2 = 15;
+    readonly float factor2 = 7;
 
     void doCircle(bool[,] caveMap, Vector2Int pos, int radius)
     {
@@ -92,10 +92,10 @@ public class LoadTilemap : MonoBehaviour
 
     void doCave(bool[,] caveMap, Vector2Int pos, int length, int radius)
     {
-        Vector2 lastOffset = Vector2.right * GetSimplexNoise(pos.y / 5f / radius, pos.x / 5f / radius) * 30f * radius;
+        Vector2 lastOffset = Vector2.right * GetSimplexNoise(pos.y / 5f / radius, pos.x / 5f / radius) * 5f * radius;
         for (int i = 0; i < length; ++i)
         {
-            float theXCoordinate = ((GetSimplexNoise((pos.y - i) / 5f / radius, pos.x / 5f / radius)) * 30f * radius);
+            float theXCoordinate = ((GetSimplexNoise((pos.y - i) / 5f / radius, pos.x / 5f / radius)) * 5f * radius);
 
             Vector2 nextOffset = new(theXCoordinate, - i);
             var posDiff = (nextOffset - lastOffset).magnitude;
@@ -117,7 +117,7 @@ public class LoadTilemap : MonoBehaviour
     void doCaveRandom(bool[,] caveMap, Vector2Int pos)
     {
         int length = UnityEngine.Random.Range(200, 300);
-        int radius = UnityEngine.Random.Range(8, 15);
+        int radius = UnityEngine.Random.Range(4, 10);
         doCave(caveMap, pos, length, radius);
     }
 
@@ -126,7 +126,7 @@ public class LoadTilemap : MonoBehaviour
         var rngOldState = UnityEngine.Random.state;
         UnityEngine.Random.InitState((int)seed);
         Vector2Int vecSeed = new((int)(seed), (int)(seed >> 32));
-        Vector2Int worldSize = new(100, 300);
+        Vector2Int worldSize = new(500, 300);
         // 2000x1000 total, 1000 in both directions and 500 in both directions
         worldSize *= 2;
 
@@ -151,7 +151,7 @@ public class LoadTilemap : MonoBehaviour
             for (int j = 0; j < worldSize.y; ++j)
             {
                 // bool b = (Mathf.PerlinNoise(i / 30.0f, j / 30.0f) + Mathf.PerlinNoise(i / 20.0f, j / 20.0f) * 0.6f) / 1.6f > 0.35f;
-                bool b = j > 400 || GetSimplexNoise(i / 100f, j / 100f, 4) > -0.15f;
+                bool b = j > 400 || GetSimplexNoise(i / 128f, j / 128f, 5) < 0.2f;
                 openCaveMap[i, j] = b;
                 squiggleCaveMap[i, j] = true;
             }
@@ -169,7 +169,7 @@ public class LoadTilemap : MonoBehaviour
            }
         }
 
-        doCircle(squiggleCaveMap, worldSize / 2, 50);
+//        doCircle(squiggleCaveMap, worldSize / 2, 50);
 
         doCave(squiggleCaveMap, new Vector2Int(worldSize.x / 2, heightMap[worldSize.x / 2]), heightMap[worldSize.x / 2], 5);
 

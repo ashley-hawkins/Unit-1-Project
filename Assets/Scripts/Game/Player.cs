@@ -16,19 +16,21 @@ public class Player : MonoBehaviour
     }
 
     // Update is called once per frame
+    bool swingTool = false;
     void Update()
     {
-        bool swingTool = Input.GetMouseButton(0);
-        animator.SetBool("Swinging", swingTool);
 
         if (Input.GetMouseButtonDown(0))
         {
+            swingTool = true;
             armPivot.SetActive(true);
         }
         else if(Input.GetMouseButtonUp(0))
         {
+            swingTool = false;
             armPivot.SetActive(false);
         }
+        animator.SetBool("Swinging", swingTool);
 
         if (swingTool)
         {
@@ -57,14 +59,15 @@ public class Player : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            rb.AddForce(Vector2.up * 15.0f, ForceMode2D.Impulse);
+            rb.AddForce(Vector2.up * rb.mass * 15.0f, ForceMode2D.Impulse);
         }
 
         float currentSpeed = rb.velocity.x;
 
-        float desiredSpeedDelta = desiredSpeed - currentSpeed;
+        float desiredSpeedDelta = Mathf.Round(desiredSpeed - currentSpeed);
 
-        float forceRequired = rb.mass * desiredSpeedDelta;
+        float forceRequired = 20 * rb.mass * Mathf.Sign(desiredSpeedDelta);
+        if (Mathf.Abs(rb.velocity.x) < 0.1 && desiredSpeed == 0) forceRequired = 0;
 
         rb.AddForce(Vector2.right * forceRequired);
 
