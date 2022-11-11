@@ -190,7 +190,6 @@ public class LoadTilemap : MonoBehaviour
                 {
                     if (first)
                     {
-                        print("first");
                         maps[TileGroup.ForegroundBasic].SetTile(new Vector3Int(i, j), tiles[0]);
                         first = false;
                     }

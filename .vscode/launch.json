@@ -7,7 +7,7 @@
         {
             "name": "Unity Editor",
             "type": "unity",
-            "path": "/home/lenny/UnityProjects/Unit 1 Assignment/Library/EditorInstance.json",
+            "path": "UnityProjects/Unit 1 Assignment/Library/EditorInstance.json",
             "request": "launch"
         },
         {

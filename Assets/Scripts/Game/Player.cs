@@ -66,8 +66,9 @@ public class Player : MonoBehaviour
 
         float desiredSpeedDelta = Mathf.Round(desiredSpeed - currentSpeed);
 
-        float forceRequired = 20 * rb.mass * Mathf.Sign(desiredSpeedDelta);
-        if (Mathf.Abs(rb.velocity.x) < 0.1 && desiredSpeed == 0) forceRequired = 0;
+        float forceRequired = 10 * rb.mass * Mathf.Sign(desiredSpeedDelta);
+        if (desiredSpeed == 0) forceRequired /= 4f;
+        if (Mathf.Abs(desiredSpeedDelta) < 1 && desiredSpeed == 0) forceRequired = 0;
 
         rb.AddForce(Vector2.right * forceRequired);
 
