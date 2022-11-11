@@ -6,23 +6,35 @@ public class Enemy : MonoBehaviour
 {
     public Transform player;
     Rigidbody2D rb;
+    SpriteRenderer sr;
     Combat combat;
+
+    bool facingRight;
 
     float nextJump = 0;
     // Start is called before the first frame update
     void Start()
     {
+        facingRight = true;
         rb = GetComponent<Rigidbody2D>();
+        sr = GetComponent<SpriteRenderer>();
         combat = GetComponent<Combat>();
         combat.OnDeath += OnDeath;
         combat.OnDamage += OnDamage;
+        combat.OnKnockback += (right) =>
+        {
+            var multiplier = right ? 1 : -1;
+            var force = new Vector2(4f * multiplier, 3f) * 3;
+            rb.AddForce(force, ForceMode2D.Impulse);
+        };
     }
 
     void OnDeath()
     {
         print("ow oof i'm dead");
+        Destroy(gameObject);
     }
-    void OnDamage(bool right)
+    void OnDamage(int amount)
     {
         print("ow oof i'm damaged");
     }
@@ -33,13 +45,24 @@ public class Enemy : MonoBehaviour
         var dist = player.position - transform.position;
         if (dist.magnitude > 20) return;
 
-        if (dist.y >= 1 && Time.time >= nextJump)
+        if (dist.y >= 0.9f && Time.time >= nextJump)
         {
             nextJump = Time.time + 0.8f;
             rb.AddForce(Vector2.up * rb.mass * 12.0f, ForceMode2D.Impulse);
         }
 
         var wantsDirection = (Mathf.Abs(dist.x) > 0.1) ? Mathf.Sign(dist.x) : 0;
+
+        if (wantsDirection == 1)
+        {
+            facingRight = true;
+        }
+        else if (wantsDirection == -1)
+        {
+            facingRight = false;
+        }
+
+        sr.flipX = !facingRight;
 
         var desiredSpeed = 2.0f * wantsDirection;
 
@@ -52,5 +75,12 @@ public class Enemy : MonoBehaviour
         if (Mathf.Abs(desiredSpeedDelta) < 1 && desiredSpeed == 0) forceRequired = 0;
 
         rb.AddForce(Vector2.right * forceRequired);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (!(collision.transform.parent?.CompareTag("Player") ?? false)) return;
+
+        collision.transform.parent.GetComponent<Combat>().DealDamage(10, facingRight);
     }
 }

@@ -25,10 +25,10 @@ public class TileInfo
 public class LoadTilemap : MonoBehaviour
 {
     // Start is called before the first frame update
-    Dictionary<TileGroup, Tilemap> maps;
+    public Dictionary<TileGroup, Tilemap> maps;
     public TileInfo[] tileInfo;
 
-    Tile[] tiles;
+    public Tile[] tiles;
 
     public string loadFile;
 
@@ -71,7 +71,7 @@ public class LoadTilemap : MonoBehaviour
         }
     }
 
-    readonly float factor1 = 30;
+    readonly float factor1 = 50;
     readonly float factor2 = 7;
 
     void doCircle(bool[,] caveMap, Vector2Int pos, int radius)
@@ -205,18 +205,9 @@ public class LoadTilemap : MonoBehaviour
     }
     void Update()
     {
-        //maps[TileGroup.ForegroundBasic].ClearAllTiles();
-        //WorldGen();
     }
 
-
-
-
-
-
-
-
-    // Adapted from https://blog.unity.com/technology/procedural-patterns-to-use-with-tilemaps-part-ii
+    // The following two methods were adapted by me from the algorithm discussed at https://blog.unity.com/technology/procedural-patterns-to-use-with-tilemaps-part-ii
 
     static int GetMooreSurroundingTiles(bool[,] map, int x, int y, bool edgesAreWalls)
     {
@@ -255,12 +246,11 @@ public class LoadTilemap : MonoBehaviour
                         //Set the edge to be a wall if we have edgesAreWalls to be true
                         mapB[x, y] = true;
                     }
-                    //The default moore rule requires more than 4 neighbours
                     else if (surroundingTiles > 4)
                     {
                         mapB[x, y] = true;
                     }
-                    else if (surroundingTiles < 4)
+                    else if (surroundingTiles < 3)
                     {
                         mapB[x, y] = false;
                     }
