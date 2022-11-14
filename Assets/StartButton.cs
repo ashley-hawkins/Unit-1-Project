@@ -9,11 +9,12 @@ public class StartButton : MonoBehaviour
     void Start()
     {
         b = GetComponent<UnityEngine.UI.Button>();
-        b.onClick.AddListener(() =>
-        {
-            print("a");
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
-        });
+    }
+
+    public void LoadTheMainGame()
+    {
+        print("a");
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
     }
 
     // Update is called once per frame
