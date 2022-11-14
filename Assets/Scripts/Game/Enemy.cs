@@ -32,7 +32,10 @@ public class Enemy : MonoBehaviour
     void OnDeath()
     {
         print("ow oof i'm dead");
-        Destroy(gameObject);
+
+        GameoverScreen.headerText = "You win";
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Gameover");
+        // Destroy(gameObject);
     }
     void OnDamage(int amount)
     {
@@ -77,10 +80,13 @@ public class Enemy : MonoBehaviour
         rb.AddForce(Vector2.right * forceRequired);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    float nextAttack = 0;
+
+    private void OnTriggerStay2D(Collider2D collision)
     {
-        if (!(collision.transform.parent?.CompareTag("Player") ?? false)) return;
+        if (Time.time < nextAttack || !(collision.transform.parent?.CompareTag("Player") ?? false)) return;
 
         collision.transform.parent.GetComponent<Combat>().DealDamage(10, facingRight);
+        nextAttack = Time.time + 1;
     }
 }

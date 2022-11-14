@@ -19,12 +19,18 @@ public class Player : MonoBehaviour
         groundLayer = LayerMask.GetMask("Terrain");
 
         combat.OnKnockback += OnKnockback;
+        combat.OnDeath += OnDeath;
     }
 
     // Update is called once per frame
     bool swingTool = false;
     public bool facingRight { get; private set; } = true;
 
+    void OnDeath()
+    {
+        GameoverScreen.headerText = "Game over";
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Gameover");
+    }
     void FaceDirection(bool right)
     {
         facingRight = right;
