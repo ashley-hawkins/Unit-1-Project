@@ -5,6 +5,9 @@ using UnityEngine;
 public class StartButton : MonoBehaviour
 {
     UnityEngine.UI.Button b;
+    public GameObject[] objectsToDisable;
+    public GameObject[] objectsToEnable;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -13,7 +16,14 @@ public class StartButton : MonoBehaviour
 
     public void LoadTheMainGame()
     {
-        print("a");
+        foreach (GameObject obj in objectsToDisable)
+        {
+            obj.SetActive(false);
+        }
+        foreach (GameObject obj in objectsToEnable)
+        {
+            obj.SetActive(true);
+        }
         UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
     }
 

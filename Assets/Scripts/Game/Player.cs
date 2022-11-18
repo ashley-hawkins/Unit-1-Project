@@ -139,7 +139,7 @@ public class Player : MonoBehaviour
             }
         }
 
-        rb.AddForce(Vector2.right * forceRequired);
+        rb.AddForce(Vector2.right * forceRequired * Time.deltaTime * 250);
 
         animator.SetBool("Walking", desiredSpeed != 0);
     }

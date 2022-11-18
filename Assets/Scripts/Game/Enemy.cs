@@ -77,7 +77,7 @@ public class Enemy : MonoBehaviour
         if (desiredSpeed == 0) forceRequired /= 4f;
         if (Mathf.Abs(desiredSpeedDelta) < 1 && desiredSpeed == 0) forceRequired = 0;
 
-        rb.AddForce(Vector2.right * forceRequired);
+        rb.AddForce(Vector2.right * forceRequired * Time.deltaTime * 250);
     }
 
     float nextAttack = 0;
